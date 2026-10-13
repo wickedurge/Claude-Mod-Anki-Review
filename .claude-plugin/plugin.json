@@ -1,0 +1,6 @@
+{
+  "name": "anki-review",
+  "version": "0.1.0",
+  "description": "Review Anki cards in a pane while Claude works",
+  "types": "./types/index.d.ts"
+}
