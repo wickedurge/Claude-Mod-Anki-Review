@@ -65,3 +65,12 @@ export async function startReview(deckName: string, isDown: boolean): Promise<Re
 
   return { ok: true, value: FIRST_CARD[deckName] ?? null }
 }
+
+// Turns the card in Anki's reviewer to its answer side.
+export async function showAnswer(isDown: boolean): Promise<Reply<null>> {
+  if (isDown) {
+    return { ok: false, problem: NOT_RUNNING }
+  }
+
+  return { ok: true, value: null }
+}
