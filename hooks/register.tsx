@@ -3,9 +3,9 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import { listDecks } from './ankiconnect-stub'
+import { listDecks, startReview } from './ankiconnect-stub'
 import { drawPane } from './pane'
-import { START, afterDeckList, afterPick } from './rules'
+import { START, afterDeckList, afterExit, afterStart } from './rules'
 
 const PANE = 'anki-review'
 const TITLE = 'Anki review'
@@ -19,7 +19,12 @@ async function openPicker($: EngineInterface) {
 }
 
 async function pickDeck($: EngineInterface, name: string) {
-  await update($, review, now => afterPick(now, name))
+  const reply = await startReview(name, await read($, isStubDown))
+  await update($, review, now => afterStart(now, name, reply))
+}
+
+async function exitReview($: EngineInterface) {
+  await update($, review, now => afterExit(now))
 }
 
 export const register: Register = on => {
@@ -53,6 +58,7 @@ export const register: Register = on => {
       now: await read($, review),
       bodyColumns: e.props.bodyColumns ?? 75,
       onPick: name => void pickDeck($, name),
+      onExit: () => void exitReview($),
     }),
   )
 }

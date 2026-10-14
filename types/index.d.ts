@@ -8,6 +8,13 @@ export type Deck = {
   dueCount: number
 }
 
+// A card as AnkiConnect describes it: the two sides are HTML.
+export type Card = {
+  cardId: number
+  question: string
+  answer: string
+}
+
 export type Problem = { message: string; fix: string }
 
 // What every ankiconnect function hands back: the value, or what went wrong.
@@ -23,6 +30,8 @@ export type Review = {
   back: string
   hasLeechNotice: boolean
   error: Problem | null
+  // A one-line message that is not an error, such as "nothing is due".
+  notice: string | null
 }
 
 declare module 'claude-code' {
