@@ -2,5 +2,20 @@
   "name": "anki-review",
   "version": "0.1.0",
   "description": "Review Anki cards in a pane while Claude works",
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "ankiconnectUrl": {
+      "type": "string",
+      "title": "AnkiConnect address",
+      "description": "Where the AnkiConnect add-on listens.",
+      "default": "http://127.0.0.1:8765"
+    },
+    "ankiconnectApiKey": {
+      "type": "string",
+      "title": "AnkiConnect API key",
+      "description": "Leave empty unless you set an apiKey in AnkiConnect's config.",
+      "sensitive": true,
+      "default": ""
+    }
+  }
 }

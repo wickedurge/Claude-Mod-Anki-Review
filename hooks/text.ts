@@ -12,6 +12,8 @@ const ENTITIES: Record<string, string> = {
 export function htmlToText(html: string): string {
   return (
     html
+      // Style sheets and scripts are not card text; drop them whole.
+      .replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
       // Media cannot be shown in a terminal, so each becomes a marker.
       .replace(/<img\b[^>]*>/gi, '[image]')
       .replace(/\[sound:[^\]]*\]/gi, '[sound]')

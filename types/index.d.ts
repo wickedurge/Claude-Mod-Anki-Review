@@ -23,6 +23,22 @@ export type Problem = { message: string; fix: string }
 // What every ankiconnect function hands back: the value, or what went wrong.
 export type Reply<T> = { ok: true; value: T } | { ok: false; problem: Problem }
 
+// Everything the mod asks of Anki. The real connection and the stub both
+// provide exactly this, so the rest of the mod cannot tell them apart.
+export type Anki = {
+  listDecks: () => Promise<Reply<Deck[]>>
+  // The first card, or null when nothing is due.
+  startReview: (deckName: string) => Promise<Reply<Card | null>>
+  // The card Anki is showing, or null when the review is finished.
+  currentCard: () => Promise<Reply<Card | null>>
+  showAnswer: () => Promise<Reply<null>>
+  answerCard: (ease: Ease) => Promise<Reply<null>>
+}
+
+// Developer switch: off uses real Anki; on uses the stub; down makes the
+// stub fail as if Anki were not running.
+export type StubMode = 'off' | 'on' | 'down'
+
 export type Review = {
   status: Status
   view: View
@@ -41,8 +57,7 @@ declare module 'claude-code' {
   interface PluginState {
     'anki-review': {
       review: Review
-      // Developer-only: makes the stub answer as if Anki were not running.
-      isStubDown: boolean
+      stubMode: StubMode
     }
   }
 }
