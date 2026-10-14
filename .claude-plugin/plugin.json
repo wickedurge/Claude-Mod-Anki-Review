@@ -6,8 +6,8 @@
     "name": "RJ"
   },
   "license": "MIT",
-  "repository": "https://github.com/wickedurge/anki-review",
-  "homepage": "https://github.com/wickedurge/anki-review",
+  "repository": "https://github.com/wickedurge/Claude-Mod-Anki-Review",
+  "homepage": "https://github.com/wickedurge/Claude-Mod-Anki-Review",
   "types": "./types/index.d.ts",
   "userConfig": {
     "ankiconnectUrl": {

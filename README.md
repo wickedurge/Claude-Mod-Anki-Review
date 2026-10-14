@@ -1,6 +1,6 @@
 # anki-review
 
-[![Checks](https://github.com/wickedurge/anki-review/actions/workflows/checks.yml/badge.svg)](https://github.com/wickedurge/anki-review/actions/workflows/checks.yml)
+[![Checks](https://github.com/wickedurge/Claude-Mod-Anki-Review/actions/workflows/checks.yml/badge.svg)](https://github.com/wickedurge/Claude-Mod-Anki-Review/actions/workflows/checks.yml)
 
 Review your Anki flashcards in a pane inside Claude Code while Claude works.
 
@@ -30,7 +30,7 @@ statistics stay exactly as if you had used Anki's own window.
 Clone the repository into Claude Code's skills folder:
 
 ```sh
-git clone https://github.com/wickedurge/anki-review.git ~/.claude/skills/anki-review
+git clone https://github.com/wickedurge/Claude-Mod-Anki-Review.git ~/.claude/skills/anki-review
 ```
 
 Then start a new Claude Code session. Claude Code loads the mod from that
@@ -112,8 +112,8 @@ performs itself.
 ## Development
 
 ```sh
-git clone https://github.com/wickedurge/anki-review.git
-cd anki-review
+git clone https://github.com/wickedurge/Claude-Mod-Anki-Review.git
+cd Claude-Mod-Anki-Review
 claude plugin validate .
 claude plugin test .
 claude --plugin-dir .
