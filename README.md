@@ -1,5 +1,7 @@
 # anki-review
 
+[![Checks](https://github.com/wickedurge/anki-review/actions/workflows/checks.yml/badge.svg)](https://github.com/wickedurge/anki-review/actions/workflows/checks.yml)
+
 A Claude Code mod for reviewing Anki cards in a pane while Claude works.
 Type `/anki` to open the pane.
 
@@ -37,7 +39,8 @@ claude --plugin-dir .
 `claude plugin test .` runs the tests in `hooks/*.test.ts`. They cover the
 rules, the text conversion, reading AnkiConnect's replies, and the pane as you
 use it: commands run, keys pressed, and what is drawn checked. None of them
-needs Anki or an open terminal pane.
+needs Anki or an open terminal pane. GitHub runs the validator, the tests and
+the type check on every push (`.github/workflows/checks.yml`).
 
 `/anki stub on` uses the stand-in instead of Anki, `/anki stub down` makes it
 fail as if Anki were not running, and `/anki stub off` returns to Anki.

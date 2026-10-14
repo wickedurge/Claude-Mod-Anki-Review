@@ -1,0 +1,38 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Validate
+        run: claude plugin validate .
+
+      - name: Test
+        run: claude plugin test .
+
+      # The engine writes the mod's type files when it loads the mod; a
+      # local slash command loads it without calling the model.
+      - name: Write type files
+        env:
+          CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: '1'
+        run: claude -p "/anki stub on" --plugin-dir .
+
+      - name: Type check
+        run: npx -y -p typescript tsc -p .
