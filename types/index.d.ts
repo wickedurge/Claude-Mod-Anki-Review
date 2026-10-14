@@ -15,6 +15,9 @@ export type Card = {
   answer: string
 }
 
+// How well a card was remembered, as Anki numbers it: Again, Hard, Good, Easy.
+export type Ease = 1 | 2 | 3 | 4
+
 export type Problem = { message: string; fix: string }
 
 // What every ankiconnect function hands back: the value, or what went wrong.
