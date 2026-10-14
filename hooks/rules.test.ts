@@ -1,7 +1,18 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Card, Deck, Problem, Review } from '../types'
-import { NOTHING_DUE, START, afterDeckList, afterExit, afterShowAnswer, afterStart, isComplete } from './rules'
+import {
+  DECK_FINISHED,
+  NOTHING_DUE,
+  START,
+  afterDeckList,
+  afterExit,
+  afterNextCard,
+  afterShowAnswer,
+  afterStart,
+  isComplete,
+  isSameCard,
+} from './rules'
 
 const DECKS: Deck[] = [
   { name: 'Spanish vocabulary', newCount: 11, learnCount: 7, dueCount: 0 },
@@ -102,6 +113,63 @@ test('#5: showing the answer moves from the front to the back and keeps the card
 test('#5: a failed show-answer gives the error view', () => {
   const front = afterStart(START, 'Spanish vocabulary', { ok: true, value: CARD })
   const next = afterShowAnswer(front, { ok: false, problem: PROBLEM })
+
+  expect(next.view).toBe('error')
+  expect(next.error).toEqual(PROBLEM)
+  expect(next.cardId).toBe(1001)
+})
+
+// Issue #6: grade a card.
+
+const NEXT: Card = { cardId: 1011, question: 'la herramienta', answer: 'tool' }
+
+function onBack(): Review {
+  const loaded = afterDeckList(START, { ok: true, value: DECKS })
+  const front = afterStart(loaded, 'Spanish vocabulary', { ok: true, value: CARD })
+
+  return afterShowAnswer(front, { ok: true, value: null })
+}
+
+test('#6: the card check passes only for the card memory holds', () => {
+  const back = onBack()
+
+  expect(isSameCard(back, { ok: true, value: CARD })).toBe(true)
+  expect(isSameCard(back, { ok: true, value: NEXT })).toBe(false)
+  expect(isSameCard(back, { ok: true, value: null })).toBe(false)
+  expect(isSameCard(back, { ok: false, problem: PROBLEM })).toBe(false)
+})
+
+test('#6: after grading, the next card front replaces the old card', () => {
+  const next = afterNextCard(onBack(), { ok: true, value: NEXT })
+
+  expect(next.view).toBe('front')
+  expect(next.status).toBe('active')
+  expect(next.deck).toBe('Spanish vocabulary')
+  expect(next.cardId).toBe(1011)
+  expect(next.front).toBe('la herramienta')
+  expect(next.back).toBe('tool')
+})
+
+test('#6: when Anki is on another card, its front is shown (same rule, no grade)', () => {
+  const next = afterNextCard(onBack(), { ok: true, value: NEXT })
+
+  expect(next.view).toBe('front')
+  expect(next.cardId).toBe(1011)
+})
+
+test('#6: a finished deck returns to the deck list with the finished line', () => {
+  const back = onBack()
+  const next = afterNextCard(back, { ok: true, value: null })
+
+  expect(next.view).toBe('picker')
+  expect(next.status).toBe('exited')
+  expect(next.notice).toBe(DECK_FINISHED)
+  expect(next.cardId).toBe(null)
+  expect(next.decks).toEqual(DECKS)
+})
+
+test('#6: a failure while grading gives the error view and keeps the card', () => {
+  const next = afterNextCard(onBack(), { ok: false, problem: PROBLEM })
 
   expect(next.view).toBe('error')
   expect(next.error).toEqual(PROBLEM)

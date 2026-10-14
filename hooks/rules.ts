@@ -38,17 +38,7 @@ export function afterStart(now: Review, deckName: string, reply: Reply<Card | nu
     return { ...now, view: 'picker', notice: NOTHING_DUE, error: null }
   }
 
-  return {
-    ...now,
-    status: 'active',
-    view: 'front',
-    deck: deckName,
-    cardId: reply.value.cardId,
-    front: htmlToText(reply.value.question),
-    back: htmlToText(reply.value.answer),
-    notice: null,
-    error: null,
-  }
+  return { ...afterNextCard(now, reply), deck: deckName }
 }
 
 export function afterShowAnswer(now: Review, reply: Reply<null>): Review {
@@ -57,6 +47,34 @@ export function afterShowAnswer(now: Review, reply: Reply<null>): Review {
   }
 
   return { ...now, view: 'back', error: null }
+}
+
+export const DECK_FINISHED = 'You have finished this deck for now.'
+
+// The card-ID check: is Anki still showing the card memory holds?
+export function isSameCard(now: Review, current: Reply<Card | null>): boolean {
+  return current.ok && current.value !== null && current.value.cardId === now.cardId
+}
+
+// After grading, or when Anki turned out to be on another card.
+export function afterNextCard(now: Review, reply: Reply<Card | null>): Review {
+  if (!reply.ok) {
+    return { ...now, view: 'error', error: reply.problem }
+  }
+  if (reply.value === null) {
+    return { ...afterExit(now), notice: DECK_FINISHED }
+  }
+
+  return {
+    ...now,
+    status: 'active',
+    view: 'front',
+    cardId: reply.value.cardId,
+    front: htmlToText(reply.value.question),
+    back: htmlToText(reply.value.answer),
+    notice: null,
+    error: null,
+  }
 }
 
 export function afterExit(now: Review): Review {
