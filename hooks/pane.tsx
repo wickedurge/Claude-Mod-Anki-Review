@@ -86,8 +86,8 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, on
           <Text> </Text>
           {now.view === 'front' ? (
             <Box>
-              <Button plain hotkey="s" label="[S]how answer    " onPress={onShowAnswer} />
-              <Button plain hotkey="x" label="E[x]it" onPress={onExit} />
+              <Button key="show-answer" plain hotkey="s" label="[S]how answer    " onPress={onShowAnswer} />
+              <Button key="exit" plain hotkey="x" label="E[x]it" onPress={onExit} />
             </Box>
           ) : (
             <Box>
