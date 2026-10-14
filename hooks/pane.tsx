@@ -12,6 +12,8 @@ type PaneProps = {
   bodyColumns: number
   // Whether the person has given the pane the keyboard.
   hasKeyboard: boolean
+  // The /config switch that prints memory under the pane, for development.
+  showDeveloperDetails: boolean
   onPick: (name: string) => void
   onExit: () => void
   onShowAnswer: () => void
@@ -44,7 +46,7 @@ function counts(a: string | number, b: string | number, c: string | number) {
   return [a, b, c].map(one => String(one).padStart(COUNT_WIDTH)).join('')
 }
 
-export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, hasKeyboard, onPick, onExit, onShowAnswer, onGrade }: PaneProps) {
+export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, hasKeyboard, showDeveloperDetails, onPick, onExit, onShowAnswer, onGrade }: PaneProps) {
   const width = Math.min(MAX_WIDTH, bodyColumns)
   const nameWidth = Math.max(8, width - KEY_WIDTH - 3 * COUNT_WIDTH - DONE.length)
   // Everything dims while the keyboard is elsewhere, so it is clear where it is.
@@ -132,9 +134,9 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, ha
           <Text dimColor={dim}>{now.error.fix}</Text>
         </Box>
       )}
-      {/* Developer view of memory. Kept off the card views so it never shows
-          an answer early; goes when the real views are done. */}
-      {(now.view === 'picker' || now.view === 'error') && (
+      {/* Developer view of memory, on every view when switched on in /config.
+          It shows a card's answer early, so it is off by default. */}
+      {showDeveloperDetails && (
         <Box flexDirection="column">
           <Text dimColor={dim}> </Text>
           {Object.entries(now).map(([name, value]) => (

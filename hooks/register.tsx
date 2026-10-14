@@ -35,6 +35,7 @@ let ankiconnectUrl = DEFAULT_URL
 let ankiconnectApiKey = ''
 let syncWhenFinished = false
 let takeKeyboardBack = false
+let showDeveloperDetails = false
 
 // What the pane's last drawing saw. Plain variables: they start over when the
 // mod reloads, and the next drawing sets them again.
@@ -113,6 +114,7 @@ export const register: Register = (on, options) => {
   ankiconnectApiKey = String(options.ankiconnectApiKey || '')
   syncWhenFinished = options.syncWhenFinished === true
   takeKeyboardBack = options.takeKeyboardBack === true
+  showDeveloperDetails = options.showDeveloperDetails === true
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -181,6 +183,7 @@ export const register: Register = (on, options) => {
       now: await read($, review),
       bodyColumns: e.props.bodyColumns ?? 75,
       hasKeyboard: isFocused,
+      showDeveloperDetails,
       onPick: name => void pickDeck($, name),
       onExit: () => void exitReview($),
       onShowAnswer: () => void showCardAnswer($),

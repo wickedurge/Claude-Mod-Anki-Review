@@ -1,7 +1,13 @@
 {
   "name": "anki-review",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Review Anki cards in a pane while Claude works",
+  "author": {
+    "name": "RJ"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/wickedurge/anki-review",
+  "homepage": "https://github.com/wickedurge/anki-review",
   "types": "./types/index.d.ts",
   "userConfig": {
     "ankiconnectUrl": {
@@ -27,6 +33,12 @@
       "type": "boolean",
       "title": "Take the keyboard back after a permission prompt",
       "description": "When a permission prompt takes the keyboard from the review pane, give it back to the pane once the prompt is answered.",
+      "default": false
+    },
+    "showDeveloperDetails": {
+      "type": "boolean",
+      "title": "Show developer details",
+      "description": "Print the mod's memory at the bottom of the pane, for working on the mod. It shows card answers early.",
       "default": false
     }
   }

@@ -68,15 +68,23 @@ test('#8: a full review: front, answer, grade, Again sends a card back, deck fin
   expect(await ui.findAll({ type: 'Button' })).toHaveLength(8)
 })
 
-test('#8: the debug lines never appear on a card front or back', async ($, on) => {
+test('#15: with developer details off (the default), memory is never printed', async ($, on) => {
   const ui = await openOnStub($, on)
-  expect(await showsDebugLines(ui)).toBe(true)
+  expect(await showsDebugLines(ui)).toBe(false)
 
   await ui.press({ key: 'Spanish vocabulary' })
   expect(await showsDebugLines(ui)).toBe(false)
 
   await ui.press({ key: 'show-answer' })
   expect(await showsDebugLines(ui)).toBe(false)
+})
+
+test('#15: with developer details on, memory is printed on every view', { options: { showDeveloperDetails: true } }, async ($, on) => {
+  const ui = await openOnStub($, on)
+  expect(await showsDebugLines(ui)).toBe(true)
+
+  await ui.press({ key: 'Spanish vocabulary' })
+  expect(await showsDebugLines(ui)).toBe(true)
 })
 
 test('#8: exit on the front returns to the deck list', async ($, on) => {
