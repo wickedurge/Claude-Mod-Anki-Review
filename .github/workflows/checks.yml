@@ -16,9 +16,11 @@ jobs:
         with:
           node-version: 22
 
+      # Pinned to the version the mod is developed with. 2.1.299 no longer
+      # writes the type files on a headless load; update this with care.
       - name: Install Claude Code
         run: |
-          npm install -g @anthropic-ai/claude-code
+          npm install -g @anthropic-ai/claude-code@2.1.287
           claude --version
 
       - name: Validate
