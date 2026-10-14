@@ -10,6 +10,8 @@ type Elements = ReturnType<EngineInterface['ui']['resolve']>
 type PaneProps = {
   now: Review
   bodyColumns: number
+  // Whether the person has given the pane the keyboard.
+  hasKeyboard: boolean
   onPick: (name: string) => void
   onExit: () => void
   onShowAnswer: () => void
@@ -36,21 +38,29 @@ function counts(a: string | number, b: string | number, c: string | number) {
   return [a, b, c].map(one => String(one).padStart(COUNT_WIDTH)).join('')
 }
 
-export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, onPick, onExit, onShowAnswer, onGrade }: PaneProps) {
+export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, hasKeyboard, onPick, onExit, onShowAnswer, onGrade }: PaneProps) {
   const width = Math.min(MAX_WIDTH, bodyColumns)
   const nameWidth = Math.max(8, width - KEY_WIDTH - 3 * COUNT_WIDTH - DONE.length)
+  // Everything dims while the keyboard is elsewhere, so it is clear where it is.
+  const dim = !hasKeyboard
 
   return (
     <Box flexDirection="column">
+      {!hasKeyboard && (
+        <Box flexDirection="column">
+          <Text dimColor>ctrl+x then tab to review here</Text>
+          <Text dimColor={dim}> </Text>
+        </Box>
+      )}
       {now.view === 'picker' && (
         <Box flexDirection="column">
           {now.notice && (
             <Box width={width} flexDirection="column">
-              <Text>{now.notice}</Text>
-              <Text> </Text>
+              <Text dimColor={dim}>{now.notice}</Text>
+              <Text dimColor={dim}> </Text>
             </Box>
           )}
-          <Text bold>
+          <Text bold dimColor={dim}>
             {' '.repeat(KEY_WIDTH)}
             {fit('Deck', nameWidth)}
             {counts('New', 'Learn', 'Due')}
@@ -63,7 +73,7 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, on
             return (
               <Button
                 key={deck.name}
-                plain
+                plain dimColor={dim}
                 hotkey={hotkey}
                 label={hotkey ? row : `${' '.repeat(KEY_WIDTH)}${row}`}
                 onPress={() => onPick(deck.name)}
@@ -75,24 +85,24 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, on
       {(now.view === 'front' || now.view === 'back') && (
         <Box width={width} flexDirection="column">
           <Text dimColor>{now.deck}</Text>
-          <Text> </Text>
-          {now.front === '' ? <Text dimColor>(this card has no front)</Text> : <Text>{now.front}</Text>}
+          <Text dimColor={dim}> </Text>
+          {now.front === '' ? <Text dimColor>(this card has no front)</Text> : <Text dimColor={dim}>{now.front}</Text>}
           {now.view === 'back' && (
             <Box flexDirection="column">
               <Text dimColor>{'─'.repeat(width)}</Text>
-              {now.back === '' ? <Text dimColor>(this card has no back)</Text> : <Text>{now.back}</Text>}
+              {now.back === '' ? <Text dimColor>(this card has no back)</Text> : <Text dimColor={dim}>{now.back}</Text>}
             </Box>
           )}
-          <Text> </Text>
+          <Text dimColor={dim}> </Text>
           {now.view === 'front' ? (
             <Box>
-              <Button key="show-answer" plain hotkey="s" label="[S]how answer    " onPress={onShowAnswer} />
-              <Button key="exit" plain hotkey="x" label="E[x]it" onPress={onExit} />
+              <Button key="show-answer" plain dimColor={dim} hotkey="s" label="[S]how answer    " onPress={onShowAnswer} />
+              <Button key="exit" plain dimColor={dim} hotkey="x" label="E[x]it" onPress={onExit} />
             </Box>
           ) : (
             <Box>
               {GRADES.map(grade => (
-                <Button key={grade.hotkey} plain hotkey={grade.hotkey} label={`${grade.label}   `} onPress={() => onGrade(grade.ease)} />
+                <Button key={grade.hotkey} plain dimColor={dim} hotkey={grade.hotkey} label={`${grade.label}   `} onPress={() => onGrade(grade.ease)} />
               ))}
             </Box>
           )}
@@ -100,15 +110,15 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, on
       )}
       {now.view === 'error' && now.error && (
         <Box flexDirection="column">
-          <Text color="error">{now.error.message}</Text>
-          <Text>{now.error.fix}</Text>
+          <Text color="error" dimColor={dim}>{now.error.message}</Text>
+          <Text dimColor={dim}>{now.error.fix}</Text>
         </Box>
       )}
       {/* Developer view of memory. Kept off the card views so it never shows
           an answer early; goes when the real views are done. */}
       {(now.view === 'picker' || now.view === 'error') && (
         <Box flexDirection="column">
-          <Text> </Text>
+          <Text dimColor={dim}> </Text>
           {Object.entries(now).map(([name, value]) => (
             <Text dimColor>{`${name}: ${JSON.stringify(value)}`.slice(0, width)}</Text>
           ))}

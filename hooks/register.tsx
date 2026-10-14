@@ -123,6 +123,7 @@ export const register: Register = (on, options) => {
     drawPane($.ui.resolve(e), {
       now: await read($, review),
       bodyColumns: e.props.bodyColumns ?? 75,
+      hasKeyboard: e.props.isFocused ?? true,
       onPick: name => void pickDeck($, name),
       onExit: () => void exitReview($),
       onShowAnswer: () => void showCardAnswer($),

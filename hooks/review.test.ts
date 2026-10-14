@@ -8,7 +8,7 @@ type On = Parameters<TestBody>[1]
 // Issue #8: the whole mod as you use it, on the stub. Each test runs the
 // commands, opens the pane and presses keys, then checks what is drawn.
 
-async function openOnStub($: Engine, on: On, mode = 'on') {
+async function openOnStub($: Engine, on: On, mode = 'on', hasKeyboard?: boolean) {
   // The test stands in for Claude Code, which would open the pane.
   on('ui.open', async () => ({ value: undefined }) as never)
   await $.command.run({ command: 'anki', args: `stub ${mode}` } as never)
@@ -19,7 +19,7 @@ async function openOnStub($: Engine, on: On, mode = 'on') {
     surface: 'terminal',
     component: 'Pane',
     requestId: 'anki-review',
-    props: { bodyColumns: 80 } as never,
+    props: { bodyColumns: 80, ...(hasKeyboard === undefined ? {} : { isFocused: hasKeyboard }) } as never,
   })
 }
 
@@ -121,4 +121,41 @@ test('#8: the stub failing shows the error view with its fix', async ($, on) => 
 
   expect(await shows(ui, 'Could not reach Anki.')).toBe(true)
   expect(await shows(ui, /^Start Anki/)).toBe(true)
+})
+
+// Issue #11: dim the pane while the keyboard is elsewhere.
+
+const HINT = 'ctrl+x then tab to review here'
+
+async function everythingDim(ui: Pane) {
+  const drawn = [...(await ui.findAll({ type: 'Text' })), ...(await ui.findAll({ type: 'Button' }))]
+  return drawn.length > 0 && drawn.every(element => element.props.dimColor === true)
+}
+
+test('#11: without the keyboard every view is dimmed and shows the hint', async ($, on) => {
+  const ui = await openOnStub($, on, 'on', false)
+  expect(await shows(ui, HINT)).toBe(true)
+  expect(await everythingDim(ui)).toBe(true)
+
+  await ui.press({ key: 'Spanish vocabulary' })
+  expect(await shows(ui, HINT)).toBe(true)
+  expect(await everythingDim(ui)).toBe(true)
+
+  await ui.press({ key: 'show-answer' })
+  expect(await shows(ui, HINT)).toBe(true)
+  expect(await everythingDim(ui)).toBe(true)
+})
+
+test('#11: with the keyboard the card and keys draw normally and the hint is gone', async ($, on) => {
+  const ui = await openOnStub($, on, 'on', true)
+  expect(await shows(ui, HINT)).toBe(false)
+  expect((await ui.find({ key: 'Spanish vocabulary' }))?.props.dimColor).toBe(false)
+
+  await ui.press({ key: 'Spanish vocabulary' })
+  expect((await ui.find({ type: 'Text', text: 'el desarrollo' }))?.props.dimColor).toBe(false)
+  expect((await ui.find({ key: 'show-answer' }))?.props.dimColor).toBe(false)
+
+  await ui.press({ key: 'show-answer' })
+  expect((await ui.find({ type: 'Text', text: /^development/ }))?.props.dimColor).toBe(false)
+  expect((await ui.find({ key: 'g' }))?.props.dimColor).toBe(false)
 })
