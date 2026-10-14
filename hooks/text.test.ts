@@ -35,3 +35,11 @@ test('#4: images and sounds become markers', () => {
 test('#4: common entities are decoded', () => {
   expect(htmlToText('&lt;irregular&gt; &quot;a&quot;&nbsp;b')).toBe('<irregular> "a" b')
 })
+
+test('#7: style sheets and scripts are dropped with their contents', () => {
+  // The start of a real card from Anki: its note type's default styling.
+  const real =
+    '<style>.card {\n  font-family: arial;\n  font-size: 20px;\n  text-align: center;\n  color: black;\n  background-color: white;\n}\n</style>Change Control'
+  expect(htmlToText(real)).toBe('Change Control')
+  expect(htmlToText('a<script type="text/javascript">var x = 1;</script>b')).toBe('ab')
+})

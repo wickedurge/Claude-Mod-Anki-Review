@@ -1,6 +1,6 @@
 // Stand-in for the real ankiconnect piece: same job, made-up answers.
 // Nothing here contacts Anki.
-import type { Card, Deck, Ease, Problem, Reply } from '../types'
+import type { Anki, Card, Deck, Ease, Problem, Reply } from '../types'
 
 const LONG_NAME =
   'A deck whose name is long enough that it cannot fit on one line of the pane at any width'
@@ -52,58 +52,48 @@ const NOT_RUNNING: Problem = {
   fix: 'Start Anki, check the AnkiConnect add-on is installed, then run /anki.',
 }
 
-// isDown is the developer switch: true answers as if Anki were not running.
-export async function listDecks(isDown: boolean): Promise<Reply<Deck[]>> {
-  if (isDown) {
-    return { ok: false, problem: NOT_RUNNING }
-  }
-
-  return { ok: true, value: SAMPLE_DECKS }
-}
-
 // The cards left in the review under way, the one Anki is showing first.
 // Lost when the mod reloads, which is acceptable for a stand-in.
 let queue: Card[] = []
 
-// Starts reviewing a deck and returns its first card, or null when nothing is due.
-export async function startReview(deckName: string, isDown: boolean): Promise<Reply<Card | null>> {
-  if (isDown) {
-    return { ok: false, problem: NOT_RUNNING }
+// isDown makes every function fail as if Anki were not running.
+export function stubAnki(isDown: boolean): Anki {
+  const fail = { ok: false, problem: NOT_RUNNING } as const
+
+  return {
+    async listDecks(): Promise<Reply<Deck[]>> {
+      return isDown ? fail : { ok: true, value: SAMPLE_DECKS }
+    },
+
+    async startReview(deckName: string): Promise<Reply<Card | null>> {
+      if (isDown) {
+        return fail
+      }
+      queue = [...(CARDS[deckName] ?? [])]
+
+      return { ok: true, value: queue[0] ?? null }
+    },
+
+    async currentCard(): Promise<Reply<Card | null>> {
+      return isDown ? fail : { ok: true, value: queue[0] ?? null }
+    },
+
+    async showAnswer(): Promise<Reply<null>> {
+      return isDown ? fail : { ok: true, value: null }
+    },
+
+    // Again sends the card to the back of the queue, as Anki shows a failed
+    // card again soon; any other grade removes it.
+    async answerCard(ease: Ease): Promise<Reply<null>> {
+      if (isDown) {
+        return fail
+      }
+      const [graded, ...rest] = queue
+      if (graded) {
+        queue = ease === 1 ? [...rest, graded] : rest
+      }
+
+      return { ok: true, value: null }
+    },
   }
-
-  queue = [...(CARDS[deckName] ?? [])]
-
-  return { ok: true, value: queue[0] ?? null }
-}
-
-// Turns the card in Anki's reviewer to its answer side.
-export async function showAnswer(isDown: boolean): Promise<Reply<null>> {
-  if (isDown) {
-    return { ok: false, problem: NOT_RUNNING }
-  }
-
-  return { ok: true, value: null }
-}
-
-// The card Anki is showing, or null when the review is finished.
-export async function currentCard(isDown: boolean): Promise<Reply<Card | null>> {
-  if (isDown) {
-    return { ok: false, problem: NOT_RUNNING }
-  }
-
-  return { ok: true, value: queue[0] ?? null }
-}
-
-// Grades the card Anki is showing. Again sends it to the back of the queue,
-// as Anki shows a failed card again soon; any other grade removes it.
-export async function answerCard(ease: Ease, isDown: boolean): Promise<Reply<null>> {
-  if (isDown) {
-    return { ok: false, problem: NOT_RUNNING }
-  }
-  const [graded, ...rest] = queue
-  if (graded) {
-    queue = ease === 1 ? [...rest, graded] : rest
-  }
-
-  return { ok: true, value: null }
 }

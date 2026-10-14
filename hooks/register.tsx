@@ -3,9 +3,10 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Ease } from '../types'
+import type { Anki, Ease, StubMode } from '../types'
 
-import { answerCard, currentCard, listDecks, showAnswer, startReview } from './ankiconnect-stub'
+import { realAnki } from './ankiconnect'
+import { stubAnki } from './ankiconnect-stub'
 import { drawPane } from './pane'
 import {
   START,
@@ -21,40 +22,65 @@ const PANE = 'anki-review'
 const TITLE = 'Anki review'
 
 const review = atom({ plugin: 'anki-review', key: 'review' } as const, START)
-const isStubDown = atom({ plugin: 'anki-review', key: 'isStubDown' } as const, false)
+const stubMode = atom({ plugin: 'anki-review', key: 'stubMode' } as const, 'off' as StubMode)
+
+const DEFAULT_URL = 'http://127.0.0.1:8765'
+
+// Settings from /config, set when the mod loads.
+let ankiconnectUrl = DEFAULT_URL
+let ankiconnectApiKey = ''
+
+// Real Anki, or the stub when the developer switch says so.
+async function anki($: EngineInterface): Promise<Anki> {
+  const mode = await read($, stubMode)
+  if (mode !== 'off') {
+    return stubAnki(mode === 'down')
+  }
+
+  return realAnki(
+    body =>
+      $.http.fetch(ankiconnectUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      }),
+    ankiconnectApiKey,
+    ms => new Promise(done => void $.clock.after(ms, () => done())),
+  )
+}
 
 async function openPicker($: EngineInterface) {
-  const reply = await listDecks(await read($, isStubDown))
+  const reply = await (await anki($)).listDecks()
   await update($, review, now => afterDeckList(now, reply))
 }
 
 async function pickDeck($: EngineInterface, name: string) {
-  const reply = await startReview(name, await read($, isStubDown))
+  const reply = await (await anki($)).startReview(name)
   await update($, review, now => afterStart(now, name, reply))
 }
 
 async function showCardAnswer($: EngineInterface) {
-  const reply = await showAnswer(await read($, isStubDown))
+  const reply = await (await anki($)).showAnswer()
   await update($, review, now => afterShowAnswer(now, reply))
 }
 
 async function gradeCard($: EngineInterface, ease: Ease) {
-  const isDown = await read($, isStubDown)
+  const source = await anki($)
 
   // Grade only the card the pane shows; if Anki has moved on, show its card instead.
-  const current = await currentCard(isDown)
+  const current = await source.currentCard()
   if (!isSameCard(await read($, review), current)) {
     await update($, review, now => afterNextCard(now, current))
     return
   }
 
-  const graded = await answerCard(ease, isDown)
+  const graded = await source.answerCard(ease)
   if (!graded.ok) {
     await update($, review, now => afterNextCard(now, graded))
     return
   }
 
-  const next = await currentCard(isDown)
+  const next = await source.currentCard()
   await update($, review, now => afterNextCard(now, next))
 }
 
@@ -62,7 +88,10 @@ async function exitReview($: EngineInterface) {
   await update($, review, now => afterExit(now))
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  ankiconnectUrl = String(options.ankiconnectUrl || DEFAULT_URL)
+  ankiconnectApiKey = String(options.ankiconnectApiKey || '')
+
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'anki',
@@ -75,11 +104,13 @@ export const register: Register = on => {
   on('command.run', { command: 'anki' }, async ($, e) => {
     const args = e.args.trim()
 
-    // Developer-only: switch the stub between working and failing.
-    if (args === 'stub ok' || args === 'stub down') {
-      await update($, isStubDown, () => args === 'stub down')
+    // Developer-only: use the stub instead of Anki, working or failing.
+    const stub = /^stub (on|off|down)$/.exec(args)
+    if (stub) {
+      await update($, stubMode, () => stub[1] as StubMode)
+      const now = { on: 'the stub', down: 'the stub, failing', off: 'real Anki' }[stub[1] as StubMode]
 
-      return { text: `Stub is now ${args === 'stub down' ? 'failing' : 'working'}. Run /anki.` }
+      return { text: `Now using ${now}. Run /anki.` }
     }
 
     await openPicker($)
