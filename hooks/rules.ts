@@ -1,6 +1,6 @@
 // The rules: given what memory holds and what just happened, what memory
 // should hold next. They never talk to Anki or the engine themselves.
-import type { Card, Deck, Reply, Review } from '../types'
+import type { Card, Deck, Leech, Reply, Review } from '../types'
 import { htmlToText } from './text'
 
 export const START: Review = {
@@ -11,7 +11,7 @@ export const START: Review = {
   cardId: null,
   front: '',
   back: '',
-  hasLeechNotice: false,
+  leech: 'none',
   error: null,
   notice: null,
 }
@@ -25,7 +25,7 @@ export function afterDeckList(now: Review, reply: Reply<Deck[]>): Review {
     return { ...now, view: 'error', error: reply.problem }
   }
 
-  return { ...now, view: 'picker', decks: reply.value, error: null, notice: null }
+  return { ...now, view: 'picker', decks: reply.value, error: null, notice: null, leech: 'none' }
 }
 
 export const NOTHING_DUE = 'Nothing is due in this deck. To study more, use Custom Study in Anki.'
@@ -38,7 +38,7 @@ export function afterStart(now: Review, deckName: string, reply: Reply<Card | nu
     return { ...now, view: 'picker', notice: NOTHING_DUE, error: null }
   }
 
-  return { ...afterNextCard(now, reply), deck: deckName }
+  return { ...afterNextCard(now, reply), deck: deckName, leech: 'none' }
 }
 
 export function afterShowAnswer(now: Review, reply: Reply<null>): Review {
@@ -46,7 +46,8 @@ export function afterShowAnswer(now: Review, reply: Reply<null>): Review {
     return { ...now, view: 'error', error: reply.problem }
   }
 
-  return { ...now, view: 'back', error: null }
+  // The leech notice has been read by the time the answer is asked for.
+  return { ...now, view: 'back', error: null, leech: 'none' }
 }
 
 export const DECK_FINISHED = 'You have finished this deck for now.'
@@ -77,6 +78,23 @@ export function afterNextCard(now: Review, reply: Reply<Card | null>): Review {
   }
 }
 
+// After a grade: the next card (or the end of the deck), with any leech notice.
+export function afterGrade(now: Review, next: Reply<Card | null>, leech: Leech): Review {
+  const moved = afterNextCard(now, next)
+
+  return moved.view === 'error' ? moved : { ...moved, leech }
+}
+
 export function afterExit(now: Review): Review {
-  return { ...now, status: 'exited', view: 'picker', deck: null, cardId: null, front: '', back: '', notice: null }
+  return {
+    ...now,
+    status: 'exited',
+    view: 'picker',
+    deck: null,
+    cardId: null,
+    front: '',
+    back: '',
+    notice: null,
+    leech: 'none',
+  }
 }

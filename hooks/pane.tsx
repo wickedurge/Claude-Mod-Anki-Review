@@ -18,6 +18,12 @@ type PaneProps = {
   onGrade: (ease: Ease) => void
 }
 
+const LEECH_NOTICE = {
+  none: '',
+  leech: 'That card is now a leech.',
+  suspended: 'That card is now a leech. It has been suspended.',
+}
+
 const MAX_WIDTH = 75
 const KEY_WIDTH = 3 // the engine draws a hotkey as "1: "
 const COUNT_WIDTH = 6
@@ -60,6 +66,12 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, ha
               <Text dimColor={dim}> </Text>
             </Box>
           )}
+          {now.leech !== 'none' && (
+            <Box width={width} flexDirection="column">
+              <Text color="warning" dimColor={dim}>{LEECH_NOTICE[now.leech]}</Text>
+              <Text dimColor={dim}> </Text>
+            </Box>
+          )}
           <Text bold dimColor={dim}>
             {' '.repeat(KEY_WIDTH)}
             {fit('Deck', nameWidth)}
@@ -84,6 +96,12 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, ha
       )}
       {(now.view === 'front' || now.view === 'back') && (
         <Box width={width} flexDirection="column">
+          {now.leech !== 'none' && (
+            <Box flexDirection="column">
+              <Text color="warning" dimColor={dim}>{LEECH_NOTICE[now.leech]}</Text>
+              <Text dimColor={dim}> </Text>
+            </Box>
+          )}
           <Text dimColor>{now.deck}</Text>
           <Text dimColor={dim}> </Text>
           {now.front === '' ? <Text dimColor>(this card has no front)</Text> : <Text dimColor={dim}>{now.front}</Text>}

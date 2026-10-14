@@ -33,7 +33,7 @@ test('#8: the deck list shows numbered decks, a complete one marked done, a long
   const ui = await openOnStub($, on)
   const decks = await ui.findAll({ type: 'Button' })
 
-  expect(decks).toHaveLength(7)
+  expect(decks).toHaveLength(8)
   expect(decks[0]?.props.hotkey).toBe('1')
   expect(decks[2]?.text).toMatch(/^Finished deck .* done$/)
   expect(decks[4]?.text).toContain('…')
@@ -65,7 +65,7 @@ test('#8: a full review: front, answer, grade, Again sends a card back, deck fin
   await ui.press({ key: 'show-answer' })
   await ui.press({ key: 'g' })
   expect(await shows(ui, 'You have finished this deck for now.')).toBe(true)
-  expect(await ui.findAll({ type: 'Button' })).toHaveLength(7)
+  expect(await ui.findAll({ type: 'Button' })).toHaveLength(8)
 })
 
 test('#8: the debug lines never appear on a card front or back', async ($, on) => {
@@ -84,7 +84,7 @@ test('#8: exit on the front returns to the deck list', async ($, on) => {
 
   await ui.press({ key: 'Spanish vocabulary' })
   await ui.press({ key: 'exit' })
-  expect(await ui.findAll({ type: 'Button' })).toHaveLength(7)
+  expect(await ui.findAll({ type: 'Button' })).toHaveLength(8)
 })
 
 test('#8: a complete deck stays on the list with the nothing-due line', async ($, on) => {
@@ -158,4 +158,19 @@ test('#11: with the keyboard the card and keys draw normally and the hint is gon
   await ui.press({ key: 'show-answer' })
   expect((await ui.find({ type: 'Text', text: /^development/ }))?.props.dimColor).toBe(false)
   expect((await ui.find({ key: 'g' }))?.props.dimColor).toBe(false)
+})
+
+// Issue #12: the leech notice on screen.
+
+test('#12: Again on the stub leech card shows the notice on the next card until its answer', async ($, on) => {
+  const ui = await openOnStub($, on)
+
+  await ui.press({ key: 'Sample: leech' })
+  await ui.press({ key: 'show-answer' })
+  await ui.press({ key: 'a' })
+  expect(await shows(ui, 'The card after the leech')).toBe(true)
+  expect(await shows(ui, 'That card is now a leech. It has been suspended.')).toBe(true)
+
+  await ui.press({ key: 'show-answer' })
+  expect(await shows(ui, /leech\./)).toBe(false)
 })

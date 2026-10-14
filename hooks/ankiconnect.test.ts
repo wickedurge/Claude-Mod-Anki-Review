@@ -1,7 +1,17 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { HttpReply, Send } from './ankiconnect'
-import { answerOnly, readCard, readDecks, readDone, readEnvelope, realAnki } from './ankiconnect'
+import {
+  answerOnly,
+  isLeechCount,
+  readCard,
+  readCardState,
+  readDecks,
+  readDone,
+  readEnvelope,
+  readLeechThreshold,
+  realAnki,
+} from './ankiconnect'
 
 // Issue #7: reading AnkiConnect's replies. The replies here are shaped like
 // the samples in AnkiConnect's documentation; nothing contacts Anki.
@@ -98,7 +108,7 @@ test('#7: requests carry version 6, and the API key only when one is set', async
     return reply({ result: true, error: null })
   }
   await realAnki(recording, '', noPause).showAnswer()
-  await realAnki(recording, 'secret', noPause).answerCard(3)
+  await realAnki(recording, 'secret', noPause).answerCard(3, 1)
 
   expect(sent).toEqual([
     { action: 'guiShowAnswer', version: 6, params: {} },
@@ -119,4 +129,61 @@ test('#7: starting a review waits briefly for Anki to put the first card up', as
   const card = await realAnki(slow, '', noPause).startReview('zz-mod-test')
 
   expect(card).toEqual({ ok: true, value: { cardId: 9, question: 'q', answer: 'a' } })
+})
+
+// Issue #12: leeches.
+
+test('#12: the leech rule matches Anki: the threshold, then every half-threshold', () => {
+  const leeches = [...Array(21).keys()].filter(lapses => isLeechCount(lapses, 8))
+
+  expect(leeches).toEqual([8, 12, 16, 20])
+  expect(isLeechCount(5, 5)).toBe(true)
+  expect(isLeechCount(8, 5)).toBe(true)
+  expect(isLeechCount(7, 5)).toBe(false)
+  expect(isLeechCount(3, 0)).toBe(false)
+})
+
+test('#12: card state and threshold are read from real reply shapes', () => {
+  // Shaped like the real replies from zz-mod-test.
+  expect(readCardState([{ cardId: 1, lapses: 2, queue: -1, deckName: 'zz-mod-test', reps: 3 }])).toEqual({
+    lapses: 2,
+    queue: -1,
+    deckName: 'zz-mod-test',
+  })
+  expect(readCardState([])).toBe(null)
+  expect(readLeechThreshold({ lapse: { delays: [10], leechAction: 1, leechFails: 8 } })).toBe(8)
+  expect(readLeechThreshold(null)).toBe(8)
+})
+
+function leechAnki(lapses: number, suspends: boolean) {
+  const actions: string[] = []
+  let current = lapses
+  const send: Send = async body => {
+    const { action } = JSON.parse(body)
+    actions.push(action)
+    const result =
+      action === 'cardsInfo'
+        ? [{ cardId: 1, lapses: current, queue: suspends && current === 8 ? -1 : 2, deckName: 'zz-mod-test' }]
+        : action === 'getDeckConfig'
+          ? { lapse: { leechFails: 8 } }
+          : action === 'guiAnswerCard'
+            ? ((current += 1), true)
+            : true
+    return reply({ result, error: null })
+  }
+
+  return { actions, anki: realAnki(send, '', noPause) }
+}
+
+test('#12: Again that brings a card to 8 lapses reports a leech, suspended or not', async () => {
+  expect(await leechAnki(7, false).anki.answerCard(1, 1)).toEqual({ ok: true, value: 'leech' })
+  expect(await leechAnki(7, true).anki.answerCard(1, 1)).toEqual({ ok: true, value: 'suspended' })
+  expect(await leechAnki(8, false).anki.answerCard(1, 1)).toEqual({ ok: true, value: 'none' })
+})
+
+test('#12: grades other than Again make no extra requests', async () => {
+  const { actions, anki } = leechAnki(7, false)
+
+  expect(await anki.answerCard(3, 1)).toEqual({ ok: true, value: 'none' })
+  expect(actions).toEqual(['guiAnswerCard'])
 })

@@ -1,6 +1,6 @@
 // Stand-in for the real ankiconnect piece: same job, made-up answers.
 // Nothing here contacts Anki.
-import type { Anki, Card, Deck, Ease, Problem, Reply } from '../types'
+import type { Anki, Card, Deck, Ease, Leech, Problem, Reply } from '../types'
 
 const LONG_NAME =
   'A deck whose name is long enough that it cannot fit on one line of the pane at any width'
@@ -13,10 +13,14 @@ const SAMPLE_DECKS: Deck[] = [
   { name: LONG_NAME, newCount: 3, learnCount: 0, dueCount: 1204 },
   { name: 'Sample: missing front', newCount: 1, learnCount: 0, dueCount: 0 },
   { name: 'Sample: missing back', newCount: 1, learnCount: 0, dueCount: 0 },
+  { name: 'Sample: leech', newCount: 0, learnCount: 0, dueCount: 2 },
 ]
 
 // The cards due in each sample deck; each first card exercises a different
 // case. A deck that is absent here has nothing due.
+// Pressing Again on this card makes it a leech that Anki suspends.
+const LEECH_CARD = 1007
+
 const CARDS: Record<string, Card[]> = {
   'Spanish vocabulary': [
     {
@@ -45,6 +49,10 @@ const CARDS: Record<string, Card[]> = {
   }],
   'Sample: missing front': [{ cardId: 1005, question: '', answer: 'An answer with no question' }],
   'Sample: missing back': [{ cardId: 1006, question: 'A question with no answer', answer: '' }],
+  'Sample: leech': [
+    { cardId: LEECH_CARD, question: 'A card you keep forgetting', answer: 'Press Again to make it a leech' },
+    { cardId: 1017, question: 'The card after the leech', answer: 'The notice is gone now' },
+  ],
 }
 
 const NOT_RUNNING: Problem = {
@@ -83,17 +91,22 @@ export function stubAnki(isDown: boolean): Anki {
     },
 
     // Again sends the card to the back of the queue, as Anki shows a failed
-    // card again soon; any other grade removes it.
-    async answerCard(ease: Ease): Promise<Reply<null>> {
+    // card again soon; any other grade removes it. The leech sample card is
+    // suspended instead, so it does not come back.
+    async answerCard(ease: Ease, cardId: number): Promise<Reply<Leech>> {
       if (isDown) {
         return fail
       }
       const [graded, ...rest] = queue
+      if (ease === 1 && cardId === LEECH_CARD) {
+        queue = rest
+        return { ok: true, value: 'suspended' }
+      }
       if (graded) {
         queue = ease === 1 ? [...rest, graded] : rest
       }
 
-      return { ok: true, value: null }
+      return { ok: true, value: 'none' }
     },
   }
 }

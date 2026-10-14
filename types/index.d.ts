@@ -15,6 +15,9 @@ export type Card = {
   answer: string
 }
 
+// Whether the card just graded became a leech, and if Anki suspended it.
+export type Leech = 'none' | 'leech' | 'suspended'
+
 // How well a card was remembered, as Anki numbers it: Again, Hard, Good, Easy.
 export type Ease = 1 | 2 | 3 | 4
 
@@ -32,7 +35,8 @@ export type Anki = {
   // The card Anki is showing, or null when the review is finished.
   currentCard: () => Promise<Reply<Card | null>>
   showAnswer: () => Promise<Reply<null>>
-  answerCard: (ease: Ease) => Promise<Reply<null>>
+  // Grades the card with this ID; says whether it just became a leech.
+  answerCard: (ease: Ease, cardId: number) => Promise<Reply<Leech>>
 }
 
 // Developer switch: off uses real Anki; on uses the stub; down makes the
@@ -47,7 +51,8 @@ export type Review = {
   cardId: number | null
   front: string
   back: string
-  hasLeechNotice: boolean
+  // Shown above the next card after a card becomes a leech.
+  leech: Leech
   error: Problem | null
   // A one-line message that is not an error, such as "nothing is due".
   notice: string | null

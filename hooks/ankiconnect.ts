@@ -3,7 +3,7 @@
 // The engine only lets register.tsx touch the network, so this file never
 // does. It is handed a send function, builds each request, and reads each
 // reply into the shapes the rest of the mod uses.
-import type { Anki, Card, Deck, Ease, Problem, Reply } from '../types'
+import type { Anki, Card, Deck, Ease, Leech, Problem, Reply } from '../types'
 
 // What send resolves with; it rejects when nothing answers at the address.
 export type HttpReply = { status: number; text: string }
@@ -124,6 +124,40 @@ export function readDone(result: unknown, refused: Problem): Reply<null> {
   return result === true ? { ok: true, value: null } : { ok: false, problem: refused }
 }
 
+// Anki's rule: a card becomes a leech when its lapses reach the deck's
+// threshold, and again every half-threshold after that (8, 12, 16, ...).
+export function isLeechCount(lapses: number, threshold: number): boolean {
+  if (threshold <= 0) {
+    return false
+  }
+  const half = Math.max(1, Math.ceil(threshold / 2))
+
+  return lapses >= threshold && (lapses - threshold) % half === 0
+}
+
+// One card's lapses, queue (-1 when suspended) and deck, from cardsInfo.
+export function readCardState(result: unknown): { lapses: number; queue: number; deckName: string } | null {
+  const card = Array.isArray(result) ? result[0] : undefined
+  if (
+    typeof card !== 'object' ||
+    card === null ||
+    typeof card.lapses !== 'number' ||
+    typeof card.queue !== 'number' ||
+    typeof card.deckName !== 'string'
+  ) {
+    return null
+  }
+
+  return { lapses: card.lapses, queue: card.queue, deckName: card.deckName }
+}
+
+// The deck's leech threshold, from getDeckConfig; Anki's default is 8.
+export function readLeechThreshold(result: unknown): number {
+  const fails = (result as { lapse?: { leechFails?: unknown } } | null)?.lapse?.leechFails
+
+  return typeof fails === 'number' ? fails : 8
+}
+
 export function realAnki(send: Send, apiKey: string, pause: Pause): Anki {
   async function call(action: string, params: object = {}): Promise<Reply<unknown>> {
     const request = { action, version: 6, params, ...(apiKey ? { key: apiKey } : {}) }
@@ -192,15 +226,41 @@ export function realAnki(send: Send, apiKey: string, pause: Pause): Anki {
         : reply
     },
 
-    async answerCard(ease: Ease) {
-      const reply = await call('guiAnswerCard', { ease })
+    async answerCard(ease: Ease, cardId: number): Promise<Reply<Leech>> {
+      // Only Again can make a leech, so only Again pays for the extra reads.
+      const before = ease === 1 ? await call('cardsInfo', { cards: [cardId] }) : null
+      if (before && !before.ok) {
+        return before
+      }
 
-      return reply.ok
+      const reply = await call('guiAnswerCard', { ease })
+      const done = reply.ok
         ? readDone(reply.value, {
             message: 'Anki would not take the grade.',
             fix: 'Check Anki is showing the answer, then run /anki.',
           })
         : reply
+      if (!done.ok) {
+        return done
+      }
+      if (!before) {
+        return { ok: true, value: 'none' }
+      }
+
+      // The grade is in; a failed read here only loses the notice.
+      const lapsesBefore = readCardState(before.value)?.lapses ?? 0
+      const afterReply = await call('cardsInfo', { cards: [cardId] })
+      const after = afterReply.ok ? readCardState(afterReply.value) : null
+      if (!after || after.lapses <= lapsesBefore) {
+        return { ok: true, value: 'none' }
+      }
+      const config = await call('getDeckConfig', { deck: after.deckName })
+      const threshold = readLeechThreshold(config.ok ? config.value : null)
+      if (!isLeechCount(after.lapses, threshold)) {
+        return { ok: true, value: 'none' }
+      }
+
+      return { ok: true, value: after.queue === -1 ? 'suspended' : 'leech' }
     },
   }
 }

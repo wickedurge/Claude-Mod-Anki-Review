@@ -7,6 +7,7 @@ import {
   START,
   afterDeckList,
   afterExit,
+  afterGrade,
   afterNextCard,
   afterShowAnswer,
   afterStart,
@@ -174,4 +175,29 @@ test('#6: a failure while grading gives the error view and keeps the card', () =
   expect(next.view).toBe('error')
   expect(next.error).toEqual(PROBLEM)
   expect(next.cardId).toBe(1001)
+})
+
+// Issue #12: the leech notice's lifetime.
+
+test('#12: a leech grade puts the notice on the next card; showing its answer clears it', () => {
+  const next = afterGrade(onBack(), { ok: true, value: NEXT }, 'suspended')
+
+  expect(next.view).toBe('front')
+  expect(next.leech).toBe('suspended')
+  expect(afterShowAnswer(next, { ok: true, value: null }).leech).toBe('none')
+})
+
+test('#12: a leech on the last card shows on the deck list', () => {
+  const next = afterGrade(onBack(), { ok: true, value: null }, 'leech')
+
+  expect(next.view).toBe('picker')
+  expect(next.notice).toBe(DECK_FINISHED)
+  expect(next.leech).toBe('leech')
+})
+
+test('#12: starting a deck or reopening the list clears an old notice', () => {
+  const finished = afterGrade(onBack(), { ok: true, value: null }, 'leech')
+
+  expect(afterStart(finished, 'Spanish vocabulary', { ok: true, value: CARD }).leech).toBe('none')
+  expect(afterDeckList(finished, { ok: true, value: DECKS }).leech).toBe('none')
 })

@@ -12,6 +12,7 @@ import {
   START,
   afterDeckList,
   afterExit,
+  afterGrade,
   afterNextCard,
   afterShowAnswer,
   afterStart,
@@ -74,14 +75,15 @@ async function gradeCard($: EngineInterface, ease: Ease) {
     return
   }
 
-  const graded = await source.answerCard(ease)
+  const cardId = (await read($, review)).cardId ?? 0
+  const graded = await source.answerCard(ease, cardId)
   if (!graded.ok) {
     await update($, review, now => afterNextCard(now, graded))
     return
   }
 
   const next = await source.currentCard()
-  await update($, review, now => afterNextCard(now, next))
+  await update($, review, now => afterGrade(now, next, graded.value))
 }
 
 async function exitReview($: EngineInterface) {
