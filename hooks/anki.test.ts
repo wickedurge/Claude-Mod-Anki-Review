@@ -11,7 +11,7 @@ type On = Parameters<TestBody>[1]
 type FakeCard = { cardId: number; question: string; answer: string }
 
 // A small AnkiConnect: one deck, a queue of cards, and a log of actions.
-function fakeAnki(cards: FakeCard[]) {
+function fakeAnki(cards: FakeCard[], syncError: string | null = null) {
   const fake = { queue: [...cards], actions: [] as string[] }
 
   const answer = (action: string, params: Record<string, unknown>): unknown => {
@@ -40,7 +40,11 @@ function fakeAnki(cards: FakeCard[]) {
     reply(body: string) {
       const { action, params } = JSON.parse(body)
       fake.actions.push(action)
-      return { status: 200, ok: true, headers: {}, text: JSON.stringify({ result: answer(action, params ?? {}), error: null }) }
+      // Real Anki answers guiCurrentCard with an error, not null, once it has
+      // left the review screen; the documentation says null.
+      const notReviewing = action === 'guiCurrentCard' && fake.queue.length === 0
+      const error = notReviewing ? 'Gui review is not currently active.' : action === 'sync' ? syncError : null
+      return { status: 200, ok: true, headers: {}, text: JSON.stringify({ result: answer(action, params ?? {}), error }) }
     },
   }
 }
@@ -108,4 +112,41 @@ test('#8: nothing answering at the address shows the error view', async ($, on) 
   const ui = await openOnFake($, on, 'down')
 
   expect(await shows(ui, 'Could not reach Anki.')).toBe(true)
+})
+
+// Issue #13: sync with AnkiWeb when a deck is finished.
+
+async function finishDeck(ui: Pane) {
+  await ui.press({ key: 'zz-mod-test' })
+  for (const _card of CARDS) {
+    await ui.press({ key: 'show-answer' })
+    await ui.press({ key: 'g' })
+  }
+}
+
+test('#13: with the setting off, finishing a deck sends no sync', async ($, on) => {
+  const anki = fakeAnki(CARDS)
+  const ui = await openOnFake($, on, anki)
+  await finishDeck(ui)
+
+  expect(await shows(ui, 'You have finished this deck for now.')).toBe(true)
+  expect(anki.fake.actions).not.toContain('sync')
+})
+
+test('#13: with the setting on, finishing a deck syncs once and says so', { options: { syncWhenFinished: true } }, async ($, on) => {
+  const anki = fakeAnki(CARDS)
+  const ui = await openOnFake($, on, anki)
+  await finishDeck(ui)
+
+  expect(await shows(ui, 'You have finished this deck for now. Synced with AnkiWeb.')).toBe(true)
+  expect(anki.fake.actions.filter(action => action === 'sync')).toHaveLength(1)
+})
+
+test('#13: a failed sync gives its reason and leaves the deck list usable', { options: { syncWhenFinished: true } }, async ($, on) => {
+  const anki = fakeAnki(CARDS, 'sync: auth required')
+  const ui = await openOnFake($, on, anki)
+  await finishDeck(ui)
+
+  expect(await shows(ui, /Could not sync: AnkiConnect: sync: auth required$/)).toBe(true)
+  expect(await ui.find({ key: 'zz-mod-test' })).toBeDefined()
 })

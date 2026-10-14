@@ -173,6 +173,11 @@ export function realAnki(send: Send, apiKey: string, pause: Pause): Anki {
 
   async function currentCard(): Promise<Reply<Card | null>> {
     const reply = await call('guiCurrentCard')
+    // Real Anki reports "no card" as this error once it leaves the review
+    // screen (a finished deck), though the documentation says null.
+    if (!reply.ok && /review is not currently active/i.test(reply.problem.message)) {
+      return { ok: true, value: null }
+    }
 
     return reply.ok ? readCard(reply.value) : reply
   }
@@ -224,6 +229,12 @@ export function realAnki(send: Send, apiKey: string, pause: Pause): Anki {
             fix: 'Check Anki is on the review screen, then run /anki.',
           })
         : reply
+    },
+
+    async sync(): Promise<Reply<null>> {
+      const reply = await call('sync')
+
+      return reply.ok ? { ok: true, value: null } : reply
     },
 
     async answerCard(ease: Ease, cardId: number): Promise<Reply<Leech>> {

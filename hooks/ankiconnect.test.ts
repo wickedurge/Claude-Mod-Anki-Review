@@ -187,3 +187,11 @@ test('#12: grades other than Again make no extra requests', async () => {
   expect(await anki.answerCard(3, 1)).toEqual({ ok: true, value: 'none' })
   expect(actions).toEqual(['guiAnswerCard'])
 })
+
+// Found with real Anki during issue #13.
+
+test('#13: "Gui review is not currently active" means no card, not a failure', async () => {
+  const notReviewing: Send = async () => reply({ result: null, error: 'Gui review is not currently active.' })
+
+  expect(await realAnki(notReviewing, '', noPause).currentCard()).toEqual({ ok: true, value: null })
+})

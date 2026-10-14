@@ -86,6 +86,10 @@ export function stubAnki(isDown: boolean): Anki {
       return isDown ? fail : { ok: true, value: queue[0] ?? null }
     },
 
+    async sync(): Promise<Reply<null>> {
+      return isDown ? fail : { ok: true, value: null }
+    },
+
     async showAnswer(): Promise<Reply<null>> {
       return isDown ? fail : { ok: true, value: null }
     },

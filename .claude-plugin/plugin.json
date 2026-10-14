@@ -16,6 +16,12 @@
       "description": "Leave empty unless you set an apiKey in AnkiConnect's config.",
       "sensitive": true,
       "default": ""
+    },
+    "syncWhenFinished": {
+      "type": "boolean",
+      "title": "Sync with AnkiWeb when a deck is finished",
+      "description": "After the last card of a deck, ask Anki to sync so the reviews reach your other devices.",
+      "default": false
     }
   }
 }

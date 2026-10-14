@@ -11,6 +11,8 @@ import {
   afterNextCard,
   afterShowAnswer,
   afterStart,
+  afterSync,
+  afterSyncStart,
   isComplete,
   isSameCard,
 } from './rules'
@@ -200,4 +202,18 @@ test('#12: starting a deck or reopening the list clears an old notice', () => {
 
   expect(afterStart(finished, 'Spanish vocabulary', { ok: true, value: CARD }).leech).toBe('none')
   expect(afterDeckList(finished, { ok: true, value: DECKS }).leech).toBe('none')
+})
+
+// Issue #13: the sync lines.
+
+test('#13: syncing, then synced or the reason it failed, on the finished line', () => {
+  const finished = afterNextCard(onBack(), { ok: true, value: null })
+  const syncing = afterSyncStart(finished)
+
+  expect(syncing.notice).toBe(`${DECK_FINISHED} Syncing with AnkiWeb…`)
+  expect(afterSync(syncing, { ok: true, value: null }).notice).toBe(`${DECK_FINISHED} Synced with AnkiWeb.`)
+  expect(afterSync(syncing, { ok: false, problem: PROBLEM }).notice).toBe(
+    `${DECK_FINISHED} Could not sync: Could not reach Anki.`,
+  )
+  expect(afterSync(syncing, { ok: false, problem: PROBLEM }).view).toBe('picker')
 })

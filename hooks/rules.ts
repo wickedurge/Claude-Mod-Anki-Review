@@ -52,6 +52,18 @@ export function afterShowAnswer(now: Review, reply: Reply<null>): Review {
 
 export const DECK_FINISHED = 'You have finished this deck for now.'
 
+// Sync results go on the finished line: the reviews are already saved in
+// Anki, so a failed sync is out of date, not lost, and blocks nothing.
+export function afterSyncStart(now: Review): Review {
+  return { ...now, notice: `${DECK_FINISHED} Syncing with AnkiWeb…` }
+}
+
+export function afterSync(now: Review, reply: Reply<null>): Review {
+  const result = reply.ok ? 'Synced with AnkiWeb.' : `Could not sync: ${reply.problem.message}`
+
+  return { ...now, notice: `${DECK_FINISHED} ${result}` }
+}
+
 // The card-ID check: is Anki still showing the card memory holds?
 export function isSameCard(now: Review, current: Reply<Card | null>): boolean {
   return current.ok && current.value !== null && current.value.cardId === now.cardId

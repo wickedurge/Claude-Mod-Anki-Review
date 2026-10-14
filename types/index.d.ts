@@ -37,6 +37,8 @@ export type Anki = {
   showAnswer: () => Promise<Reply<null>>
   // Grades the card with this ID; says whether it just became a leech.
   answerCard: (ease: Ease, cardId: number) => Promise<Reply<Leech>>
+  // Uploads and downloads reviews through AnkiWeb.
+  sync: () => Promise<Reply<null>>
 }
 
 // Developer switch: off uses real Anki; on uses the stub; down makes the

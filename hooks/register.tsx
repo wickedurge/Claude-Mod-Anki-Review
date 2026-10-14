@@ -16,6 +16,8 @@ import {
   afterNextCard,
   afterShowAnswer,
   afterStart,
+  afterSync,
+  afterSyncStart,
   isSameCard,
 } from './rules'
 
@@ -30,6 +32,7 @@ const DEFAULT_URL = 'http://127.0.0.1:8765'
 // Settings from /config, set when the mod loads.
 let ankiconnectUrl = DEFAULT_URL
 let ankiconnectApiKey = ''
+let syncWhenFinished = false
 
 // Real Anki, or the stub when the developer switch says so.
 async function anki($: EngineInterface): Promise<Anki> {
@@ -84,6 +87,13 @@ async function gradeCard($: EngineInterface, ease: Ease) {
 
   const next = await source.currentCard()
   await update($, review, now => afterGrade(now, next, graded.value))
+
+  // The deck is finished: sync if the person asked for it in /config.
+  if (syncWhenFinished && next.ok && next.value === null) {
+    await update($, review, now => afterSyncStart(now))
+    const synced = await source.sync()
+    await update($, review, now => afterSync(now, synced))
+  }
 }
 
 async function exitReview($: EngineInterface) {
@@ -93,6 +103,7 @@ async function exitReview($: EngineInterface) {
 export const register: Register = (on, options) => {
   ankiconnectUrl = String(options.ankiconnectUrl || DEFAULT_URL)
   ankiconnectApiKey = String(options.ankiconnectApiKey || '')
+  syncWhenFinished = options.syncWhenFinished === true
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
