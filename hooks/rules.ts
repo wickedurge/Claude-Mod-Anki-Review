@@ -51,6 +51,14 @@ export function afterStart(now: Review, deckName: string, reply: Reply<Card | nu
   }
 }
 
+export function afterShowAnswer(now: Review, reply: Reply<null>): Review {
+  if (!reply.ok) {
+    return { ...now, view: 'error', error: reply.problem }
+  }
+
+  return { ...now, view: 'back', error: null }
+}
+
 export function afterExit(now: Review): Review {
   return { ...now, status: 'exited', view: 'picker', deck: null, cardId: null, front: '', back: '', notice: null }
 }

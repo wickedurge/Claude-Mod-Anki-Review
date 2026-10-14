@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Card, Deck, Problem, Review } from '../types'
-import { NOTHING_DUE, START, afterDeckList, afterExit, afterStart, isComplete } from './rules'
+import { NOTHING_DUE, START, afterDeckList, afterExit, afterShowAnswer, afterStart, isComplete } from './rules'
 
 const DECKS: Deck[] = [
   { name: 'Spanish vocabulary', newCount: 11, learnCount: 7, dueCount: 0 },
@@ -87,4 +87,23 @@ test('#4: exit returns to the picker and forgets the card but keeps the decks', 
   const next = afterExit(reviewing)
 
   expect(next).toEqual(loaded)
+})
+
+// Issue #5: show the answer.
+
+test('#5: showing the answer moves from the front to the back and keeps the card', () => {
+  const front = afterStart(START, 'Spanish vocabulary', { ok: true, value: CARD })
+  const next = afterShowAnswer(front, { ok: true, value: null })
+
+  expect(next.view).toBe('back')
+  expect(next).toEqual({ ...front, view: 'back' })
+})
+
+test('#5: a failed show-answer gives the error view', () => {
+  const front = afterStart(START, 'Spanish vocabulary', { ok: true, value: CARD })
+  const next = afterShowAnswer(front, { ok: false, problem: PROBLEM })
+
+  expect(next.view).toBe('error')
+  expect(next.error).toEqual(PROBLEM)
+  expect(next.cardId).toBe(1001)
 })
