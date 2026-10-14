@@ -19,6 +19,7 @@ import {
   afterSync,
   afterSyncStart,
   isSameCard,
+  shouldTakeKeyboardBack,
 } from './rules'
 
 const PANE = 'anki-review'
@@ -33,6 +34,13 @@ const DEFAULT_URL = 'http://127.0.0.1:8765'
 let ankiconnectUrl = DEFAULT_URL
 let ankiconnectApiKey = ''
 let syncWhenFinished = false
+let takeKeyboardBack = false
+
+// What the pane's last drawing saw. Plain variables: they start over when the
+// mod reloads, and the next drawing sets them again.
+let isPaneOpen = false
+let hasKeyboard = false
+let keyboardLosses = 0
 
 // Real Anki, or the stub when the developer switch says so.
 async function anki($: EngineInterface): Promise<Anki> {
@@ -104,6 +112,7 @@ export const register: Register = (on, options) => {
   ankiconnectUrl = String(options.ankiconnectUrl || DEFAULT_URL)
   ankiconnectApiKey = String(options.ankiconnectApiKey || '')
   syncWhenFinished = options.syncWhenFinished === true
+  takeKeyboardBack = options.takeKeyboardBack === true
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -132,15 +141,50 @@ export const register: Register = (on, options) => {
     return { text: 'Anki review pane opened.' }
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) =>
-    drawPane($.ui.resolve(e), {
+  // next(e) covers any permission prompt as well as the tool itself, so the
+  // lines after it run once the prompt is answered and the tool is done.
+  on('tool.call', async ($, e, next) => {
+    const hadKeyboardAtStart = hasKeyboard
+    const lossesAtStart = keyboardLosses
+    const ran = await next(e)
+
+    const takeBack = shouldTakeKeyboardBack({
+      isOn: takeKeyboardBack,
+      isPaneOpen,
+      hadKeyboardAtStart,
+      lostKeyboardDuring: keyboardLosses > lossesAtStart,
+    })
+    if (takeBack) {
+      await $.ui.open({ id: PANE, title: TITLE, focus: true })
+    }
+
+    return ran
+  })
+
+  on('ui.close', async ($, e, next) => {
+    if (e.id === PANE) {
+      isPaneOpen = false
+    }
+
+    return next(e)
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+    const isFocused = e.props.isFocused ?? true
+    if (hasKeyboard && !isFocused) {
+      keyboardLosses += 1
+    }
+    hasKeyboard = isFocused
+    isPaneOpen = true
+
+    return drawPane($.ui.resolve(e), {
       now: await read($, review),
       bodyColumns: e.props.bodyColumns ?? 75,
-      hasKeyboard: e.props.isFocused ?? true,
+      hasKeyboard: isFocused,
       onPick: name => void pickDeck($, name),
       onExit: () => void exitReview($),
       onShowAnswer: () => void showCardAnswer($),
       onGrade: ease => void gradeCard($, ease),
-    }),
-  )
+    })
+  })
 }

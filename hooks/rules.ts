@@ -110,3 +110,15 @@ export function afterExit(now: Review): Review {
     leech: 'none',
   }
 }
+
+// Whether to ask for the keyboard back when a tool call ends. Claude Code
+// does not say when a permission prompt is up; the sign is the pane losing
+// the keyboard during a call it had the keyboard at the start of.
+export function shouldTakeKeyboardBack(when: {
+  isOn: boolean
+  isPaneOpen: boolean
+  hadKeyboardAtStart: boolean
+  lostKeyboardDuring: boolean
+}): boolean {
+  return when.isOn && when.isPaneOpen && when.hadKeyboardAtStart && when.lostKeyboardDuring
+}

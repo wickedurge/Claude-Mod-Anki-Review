@@ -22,6 +22,12 @@
       "title": "Sync with AnkiWeb when a deck is finished",
       "description": "After the last card of a deck, ask Anki to sync so the reviews reach your other devices.",
       "default": false
+    },
+    "takeKeyboardBack": {
+      "type": "boolean",
+      "title": "Take the keyboard back after a permission prompt",
+      "description": "When a permission prompt takes the keyboard from the review pane, give it back to the pane once the prompt is answered.",
+      "default": false
     }
   }
 }
