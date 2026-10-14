@@ -19,7 +19,8 @@ back, and grades it, through the AnkiConnect add-on.
 - `hooks/rules.ts`: what memory should hold next, given what just happened.
 - `hooks/pane.tsx`: what to draw, given what memory holds.
 - `hooks/text.ts`: turns a card's HTML into plain text.
-- `hooks/*.test.ts`: tests for the rules and the text conversion.
+- `hooks/*.test.ts`: tests. `review.test.ts` drives the pane on the stand-in;
+  `anki.test.ts` drives it against a fake AnkiConnect.
 - `hooks/ankiconnect.ts`: requests to AnkiConnect and reading its replies.
 - `hooks/ankiconnect-stub.ts`: a stand-in for Anki that returns sample decks
   and cards.
@@ -34,7 +35,9 @@ claude --plugin-dir .
 ```
 
 `claude plugin test .` runs the tests in `hooks/*.test.ts`. They cover the
-rules and the text conversion, and need neither Anki nor an open pane.
+rules, the text conversion, reading AnkiConnect's replies, and the pane as you
+use it: commands run, keys pressed, and what is drawn checked. None of them
+needs Anki or an open terminal pane.
 
 `/anki stub on` uses the stand-in instead of Anki, `/anki stub down` makes it
 fail as if Anki were not running, and `/anki stub off` returns to Anki.
