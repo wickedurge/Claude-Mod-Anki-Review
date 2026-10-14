@@ -11,6 +11,7 @@ type PaneProps = {
   now: Review
   bodyColumns: number
   onPick: (name: string) => void
+  onExit: () => void
 }
 
 const MAX_WIDTH = 75
@@ -26,7 +27,7 @@ function counts(a: string | number, b: string | number, c: string | number) {
   return [a, b, c].map(one => String(one).padStart(COUNT_WIDTH)).join('')
 }
 
-export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, onPick }: PaneProps) {
+export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, onPick, onExit }: PaneProps) {
   const width = Math.min(MAX_WIDTH, bodyColumns)
   const nameWidth = Math.max(8, width - KEY_WIDTH - 3 * COUNT_WIDTH - DONE.length)
 
@@ -34,6 +35,12 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, on
     <Box flexDirection="column">
       {now.view === 'picker' && (
         <Box flexDirection="column">
+          {now.notice && (
+            <Box width={width} flexDirection="column">
+              <Text>{now.notice}</Text>
+              <Text> </Text>
+            </Box>
+          )}
           <Text bold>
             {' '.repeat(KEY_WIDTH)}
             {fit('Deck', nameWidth)}
@@ -54,6 +61,19 @@ export function drawPane({ Box, Button, Text }: Elements, { now, bodyColumns, on
               />
             )
           })}
+        </Box>
+      )}
+      {now.view === 'front' && (
+        <Box width={width} flexDirection="column">
+          <Text dimColor>{now.deck}</Text>
+          <Text> </Text>
+          {now.front === '' ? <Text dimColor>(this card has no front)</Text> : <Text>{now.front}</Text>}
+          <Text> </Text>
+          <Box>
+            {/* Showing the answer is not built yet; the key is drawn only. */}
+            <Button plain hotkey="s" label="[S]how answer    " onPress={() => {}} />
+            <Button plain hotkey="x" label="E[x]it" onPress={onExit} />
+          </Box>
         </Box>
       )}
       {now.view === 'error' && now.error && (

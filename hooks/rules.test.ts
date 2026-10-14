@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import type { Deck, Problem, Review } from '../types'
-import { START, afterDeckList, afterPick, isComplete } from './rules'
+import type { Card, Deck, Problem, Review } from '../types'
+import { NOTHING_DUE, START, afterDeckList, afterExit, afterStart, isComplete } from './rules'
 
 const DECKS: Deck[] = [
   { name: 'Spanish vocabulary', newCount: 11, learnCount: 7, dueCount: 0 },
@@ -41,10 +41,50 @@ test('AC5: a deck is complete only when all three counts are zero', () => {
   expect(isComplete({ name: 'd', newCount: 0, learnCount: 0, dueCount: 1 })).toBe(false)
 })
 
-test('AC6: picking a deck records its name and changes nothing else', () => {
-  const loaded = afterDeckList(START, { ok: true, value: DECKS })
-  const next = afterPick(loaded, 'Spanish vocabulary')
+const CARD: Card = { cardId: 1001, question: '<b>el desarrollo</b>', answer: 'development<br>growth' }
 
+// Issue #4: start a review from the picker.
+
+test('#4: a deck with cards gives the front of its first card, as plain text', () => {
+  const loaded = afterDeckList(START, { ok: true, value: DECKS })
+  const next = afterStart(loaded, 'Spanish vocabulary', { ok: true, value: CARD })
+
+  expect(next.status).toBe('active')
+  expect(next.view).toBe('front')
   expect(next.deck).toBe('Spanish vocabulary')
-  expect(next).toEqual({ ...loaded, deck: 'Spanish vocabulary' })
+  expect(next.cardId).toBe(1001)
+  expect(next.front).toBe('el desarrollo')
+  expect(next.back).toBe('development\ngrowth')
+})
+
+test('#4: a complete deck stays on the picker with the nothing-due notice', () => {
+  const loaded = afterDeckList(START, { ok: true, value: DECKS })
+  const next = afterStart(loaded, 'Finished deck', { ok: true, value: null })
+
+  expect(next.view).toBe('picker')
+  expect(next.notice).toBe(NOTHING_DUE)
+  expect(next.status).toBe('exited')
+  expect(next.cardId).toBe(null)
+})
+
+test('#4: a failed start gives the error view', () => {
+  const next = afterStart(START, 'Spanish vocabulary', { ok: false, problem: PROBLEM })
+
+  expect(next.view).toBe('error')
+  expect(next.error).toEqual(PROBLEM)
+})
+
+test('#4: starting a deck clears an earlier notice', () => {
+  const nothing = afterStart(START, 'Finished deck', { ok: true, value: null })
+  const next = afterStart(nothing, 'Spanish vocabulary', { ok: true, value: CARD })
+
+  expect(next.notice).toBe(null)
+})
+
+test('#4: exit returns to the picker and forgets the card but keeps the decks', () => {
+  const loaded = afterDeckList(START, { ok: true, value: DECKS })
+  const reviewing = afterStart(loaded, 'Spanish vocabulary', { ok: true, value: CARD })
+  const next = afterExit(reviewing)
+
+  expect(next).toEqual(loaded)
 })
