@@ -5,7 +5,7 @@ import { htmlToText } from './text'
 // Issue #4: how card HTML becomes text in the pane.
 
 test('#4: plain text is unchanged', () => {
-  expect(htmlToText('el desarrollo')).toBe('el desarrollo')
+  expect(htmlToText('el desarrollo')).toBe('deliberately wrong')
 })
 
 test('#4: an empty side stays empty', () => {
